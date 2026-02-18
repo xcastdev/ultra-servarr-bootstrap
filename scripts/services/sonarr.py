@@ -75,7 +75,7 @@ def _ensure_download_client(client: ArrClient, config: dict, inst: dict) -> list
         changes.append("Added qBittorrent download client")
     else:
         # Check if settings match
-        current_fields = {f["name"]: f["value"] for f in existing.get("fields", [])}
+        current_fields = {f["name"]: f.get("value") for f in existing.get("fields", [])}
         needs_update = False
         for key, val in expected_fields.items():
             if key == "password":
