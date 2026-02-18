@@ -1,0 +1,43 @@
+name: Setup Servarr Stack
+
+on:
+  workflow_dispatch:
+    inputs:
+      services:
+        description: 'Comma-separated list of services to configure, or "all"'
+        required: false
+        default: "all"
+        type: string
+      dry_run:
+        description: "Preview changes without applying"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Run setup
+        run: python scripts/setup.py --services "${{ inputs.services }}" --dry-run "${{ inputs.dry_run }}"
+        env:
+          ULTRA_USERNAME: ${{ secrets.ULTRA_USERNAME }}
+          ULTRA_SERVERNAME: ${{ secrets.ULTRA_SERVERNAME }}
+          SONARR_API_KEY: ${{ secrets.SONARR_API_KEY }}
+          SONARR2_API_KEY: ${{ secrets.SONARR2_API_KEY }}
+          RADARR_API_KEY: ${{ secrets.RADARR_API_KEY }}
+          RADARR2_API_KEY: ${{ secrets.RADARR2_API_KEY }}
+          PROWLARR_API_KEY: ${{ secrets.PROWLARR_API_KEY }}
+          QBIT_USER: ${{ secrets.QBIT_USER }}
+          QBIT_PASS: ${{ secrets.QBIT_PASS }}
+          JELLYFIN_API_KEY: ${{ secrets.JELLYFIN_API_KEY }}
+          JELLYSEERR_API_KEY: ${{ secrets.JELLYSEERR_API_KEY }}

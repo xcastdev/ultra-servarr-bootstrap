@@ -1,0 +1,213 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/recyclarr/recyclarr/master/schemas/config-schema.json
+
+# ============================================================================
+# Ultra.cc Servarr Bootstrap — Recyclarr Configuration
+# ============================================================================
+#
+# Optimized for dual HD/4K setup:
+#   - Sonarr HD  (WEB-1080p)        + Sonarr2 4K  (WEB-2160p)
+#   - Radarr HD  (HD Bluray + WEB)  + Radarr2 4K  (UHD Bluray + WEB)
+#
+# URLs and API keys read from environment variables (!env_var).
+# In GitHub Actions, these are composed from secrets at workflow runtime.
+#
+# Optimization features:
+#   - reset_unmatched_scores: prevents stale CF score drift
+#   - delete_old_custom_formats: keeps instances clean when CFs are removed
+#   - Safety CFs: blocks problematic releases (bad groups, obfuscated, retags)
+#   - DV (w/o HDR fallback) blocked: safe for mixed-device households
+#   - SDR blocked on 4K: no point grabbing SDR at 4K resolution
+#   - IMAX/IMAX Enhanced preferred: up to 26% more picture
+#   - No audio CFs: not needed for TV speakers/soundbar setups
+# ============================================================================
+
+# --------------------------------------------------------------------------
+# SONARR INSTANCES
+# --------------------------------------------------------------------------
+
+sonarr:
+
+  # Sonarr HD — TV Shows (1080p)
+  # Profile created: "WEB-1080p"
+  sonarr-hd:
+    base_url: !env_var SONARR_URL
+    api_key: !env_var SONARR_API_KEY
+    delete_old_custom_formats: true
+    replace_existing_custom_formats: false
+
+    include:
+      # Quality sizes (once per instance)
+      - template: sonarr-quality-definition-series
+      # Profile structure + quality ordering
+      - template: sonarr-v4-quality-profile-web-1080p
+      # All required CFs: unwanted, HQ tiers, streaming services, repacks
+      - template: sonarr-v4-custom-formats-web-1080p
+
+    quality_profiles:
+      - name: WEB-1080p
+        reset_unmatched_scores:
+          enabled: true    # Reset scores not managed by Recyclarr to 0
+
+    # Additional CFs not included in templates
+    custom_formats:
+      # Safety — block problematic release types
+      - trash_ids:
+          - 32b367365729d530ca1c124a0b180c64  # Bad Dual Groups
+          - 82d40da2bc6923f41e14394075dd4b03  # No-RlsGroup
+          - e1a997ddb54e3ecbfe06341ad323c458  # Obfuscated
+          - 06d66ab109d4d2eddb2794d21526d140  # Retags
+          - 1b3994c551cbb92a2c781af061f4ab44  # Scene
+        assign_scores_to:
+          - name: WEB-1080p
+
+  # --------------------------------------------------------------------------
+
+  # Sonarr 4K — TV Shows (2160p)
+  # Profile created: "WEB-2160p"
+  sonarr-uhd:
+    base_url: !env_var SONARR2_URL
+    api_key: !env_var SONARR2_API_KEY
+    delete_old_custom_formats: true
+    replace_existing_custom_formats: false
+
+    include:
+      - template: sonarr-quality-definition-series
+      - template: sonarr-v4-quality-profile-web-2160p
+      # Includes HDR formats (HDR +500, DV Boost +1000, HDR10+ Boost +100)
+      # Includes both HD + UHD Streaming Boosts
+      - template: sonarr-v4-custom-formats-web-2160p
+
+    quality_profiles:
+      - name: WEB-2160p
+        reset_unmatched_scores:
+          enabled: true
+
+    custom_formats:
+      # Block DV without HDR fallback — purple/green on incompatible devices
+      - trash_ids:
+          - 9b27ab6498ec0f31a3353992e19434ca  # DV (WEBDL) w/o HDR fallback
+        assign_scores_to:
+          - name: WEB-2160p
+
+      # Block SDR at 4K — defeats the purpose of a 4K instance
+      - trash_ids:
+          - 2016d1676f5ee13a5b7257ff86ac9a93  # SDR
+        assign_scores_to:
+          - name: WEB-2160p
+
+      # Safety — block problematic release types
+      - trash_ids:
+          - 32b367365729d530ca1c124a0b180c64  # Bad Dual Groups
+          - 82d40da2bc6923f41e14394075dd4b03  # No-RlsGroup
+          - e1a997ddb54e3ecbfe06341ad323c458  # Obfuscated
+          - 06d66ab109d4d2eddb2794d21526d140  # Retags
+          - 1b3994c551cbb92a2c781af061f4ab44  # Scene
+        assign_scores_to:
+          - name: WEB-2160p
+
+# --------------------------------------------------------------------------
+# RADARR INSTANCES
+# --------------------------------------------------------------------------
+
+radarr:
+
+  # Radarr HD — Movies (1080p)
+  # Profile created: "HD Bluray + WEB"
+  radarr-hd:
+    base_url: !env_var RADARR_URL
+    api_key: !env_var RADARR_API_KEY
+    delete_old_custom_formats: true
+    replace_existing_custom_formats: false
+
+    include:
+      # Quality sizes (once per instance)
+      - template: radarr-quality-definition-movie
+      # Profile structure + quality ordering
+      - template: radarr-quality-profile-hd-bluray-web
+      # All required CFs: unwanted, HQ tiers, streaming, repacks
+      # No audio CFs — HD encodes rarely include HD audio
+      - template: radarr-custom-formats-hd-bluray-web
+
+    quality_profiles:
+      - name: HD Bluray + WEB
+        reset_unmatched_scores:
+          enabled: true
+
+    custom_formats:
+      # IMAX — up to 26% more picture (1.90:1 aspect ratio)
+      - trash_ids:
+          - eecf3a857724171f968a66cb5719e152  # IMAX
+          - 9f6cbff8cfe4ebbc1bde14c7b7bec0de  # IMAX Enhanced
+        assign_scores_to:
+          - name: HD Bluray + WEB
+            score: 800
+
+      # Safety — block problematic release types
+      - trash_ids:
+          - b6832f586342ef70d9c128d40c07b872  # Bad Dual Groups
+          - ae9b7c9ebde1f3bd336a8cbd1ec4c5e5  # No-RlsGroup
+          - 7357cf5161efbf8c4d5d0c30b4815ee2  # Obfuscated
+          - 5c44f52a8714fdd79bb4d98e2673be1f  # Retags
+          - f537cf427b64c38c8e36298f657e4828  # Scene
+        assign_scores_to:
+          - name: HD Bluray + WEB
+
+  # --------------------------------------------------------------------------
+
+  # Radarr 4K — Movies (2160p)
+  # Profile created: "UHD Bluray + WEB"
+  radarr-uhd:
+    base_url: !env_var RADARR2_URL
+    api_key: !env_var RADARR2_API_KEY
+    delete_old_custom_formats: true
+    replace_existing_custom_formats: false
+
+    include:
+      - template: radarr-quality-definition-movie
+      - template: radarr-quality-profile-uhd-bluray-web
+      # Includes HDR formats (HDR +500, DV Boost +1000, HDR10+ Boost +100)
+      # Includes UHD Bluray tiers + WEB tiers
+      # No audio CFs — soundbar setup doesn't benefit from HD audio scoring
+      - template: radarr-custom-formats-uhd-bluray-web
+
+    quality_profiles:
+      - name: UHD Bluray + WEB
+        reset_unmatched_scores:
+          enabled: true
+
+    custom_formats:
+      # Block DV without HDR fallback — purple/green on incompatible devices
+      - trash_ids:
+          - 923b6abef9b17f937fab56cfcf89e1f1  # DV (WEBDL) w/o HDR fallback
+        assign_scores_to:
+          - name: UHD Bluray + WEB
+
+      # Block SDR at 4K — defeats the purpose of a 4K instance
+      - trash_ids:
+          - 9c38ebb7384dada637be8899efa68e6f  # SDR
+        assign_scores_to:
+          - name: UHD Bluray + WEB
+
+      # Block upscaled — fake 4K from HD sources
+      - trash_ids:
+          - bfd8eb01832d646a0a89c4deb46f8564  # Upscaled
+        assign_scores_to:
+          - name: UHD Bluray + WEB
+
+      # IMAX — up to 26% more picture (1.90:1 aspect ratio)
+      - trash_ids:
+          - eecf3a857724171f968a66cb5719e152  # IMAX
+          - 9f6cbff8cfe4ebbc1bde14c7b7bec0de  # IMAX Enhanced
+        assign_scores_to:
+          - name: UHD Bluray + WEB
+            score: 800
+
+      # Safety — block problematic release types
+      - trash_ids:
+          - b6832f586342ef70d9c128d40c07b872  # Bad Dual Groups
+          - ae9b7c9ebde1f3bd336a8cbd1ec4c5e5  # No-RlsGroup
+          - 7357cf5161efbf8c4d5d0c30b4815ee2  # Obfuscated
+          - 5c44f52a8714fdd79bb4d98e2673be1f  # Retags
+          - f537cf427b64c38c8e36298f657e4828  # Scene
+        assign_scores_to:
+          - name: UHD Bluray + WEB

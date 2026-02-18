@@ -1,0 +1,66 @@
+# All paths are relative to /home/{ULTRA_USERNAME}
+# ULTRA_USERNAME and ULTRA_SERVERNAME come from GitHub Secrets
+
+qbittorrent:
+  app_path: /qbittorrent
+  default_save_path: downloads/qbittorrent
+  preferences:
+    torrent_management_mode: automatic       # REQUIRED for category subdirs
+    torrent_content_layout: Original
+    relocate_on_category_change: true
+    relocate_on_default_save_path_change: true
+  categories:
+    tv-hd:
+      save_path: tv-hd                       # Relative to default_save_path
+    tv-uhd:
+      save_path: tv-uhd
+    movies-hd:
+      save_path: movies-hd
+    movies-uhd:
+      save_path: movies-uhd
+
+instances:
+  sonarr:
+    app_path: /sonarr
+    api_key_secret: SONARR_API_KEY
+    root_folder: media/tv
+    category: tv-hd
+    type: sonarr
+  sonarr2:
+    app_path: /sonarr2
+    api_key_secret: SONARR2_API_KEY
+    root_folder: media/tv-uhd
+    category: tv-uhd
+    type: sonarr
+  radarr:
+    app_path: /radarr
+    api_key_secret: RADARR_API_KEY
+    root_folder: media/movies
+    category: movies-hd
+    type: radarr
+  radarr2:
+    app_path: /radarr2
+    api_key_secret: RADARR2_API_KEY
+    root_folder: media/movies-uhd
+    category: movies-uhd
+    type: radarr
+  prowlarr:
+    app_path: /prowlarr
+    api_key_secret: PROWLARR_API_KEY
+  jellyfin:
+    app_path: /jellyfin
+    api_key_secret: JELLYFIN_API_KEY
+  jellyseerr:
+    app_path: /jellyseerr
+    api_key_secret: JELLYSEERR_API_KEY
+
+media_management:
+  hardlinks: true
+  analyze_video: false
+  propers_and_repacks: doNotPrefer           # Use CFs for repack scoring instead
+
+tags:
+  sonarr: [hd]
+  sonarr2: [uhd]
+  radarr: [hd]
+  radarr2: [uhd]

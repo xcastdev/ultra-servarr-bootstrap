@@ -1,0 +1,33 @@
+name: Recyclarr Sync
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Recyclarr
+        run: |
+          curl -fsSL https://github.com/recyclarr/recyclarr/releases/latest/download/recyclarr-linux-x64.tar.xz | tar -xJ
+          chmod +x recyclarr
+
+      - name: Build service URLs
+        run: |
+          echo "SONARR_URL=https://${ULTRA_USERNAME}.${ULTRA_SERVERNAME}.usbx.me/sonarr" >> $GITHUB_ENV
+          echo "SONARR2_URL=https://${ULTRA_USERNAME}.${ULTRA_SERVERNAME}.usbx.me/sonarr2" >> $GITHUB_ENV
+          echo "RADARR_URL=https://${ULTRA_USERNAME}.${ULTRA_SERVERNAME}.usbx.me/radarr" >> $GITHUB_ENV
+          echo "RADARR2_URL=https://${ULTRA_USERNAME}.${ULTRA_SERVERNAME}.usbx.me/radarr2" >> $GITHUB_ENV
+        env:
+          ULTRA_USERNAME: ${{ secrets.ULTRA_USERNAME }}
+          ULTRA_SERVERNAME: ${{ secrets.ULTRA_SERVERNAME }}
+
+      - name: Sync profiles
+        run: ./recyclarr sync --config config/recyclarr.yml
+        env:
+          SONARR_API_KEY: ${{ secrets.SONARR_API_KEY }}
+          SONARR2_API_KEY: ${{ secrets.SONARR2_API_KEY }}
+          RADARR_API_KEY: ${{ secrets.RADARR_API_KEY }}
+          RADARR2_API_KEY: ${{ secrets.RADARR2_API_KEY }}

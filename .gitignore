@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.codenomad/
+
+# Linters / formatters
+.ruff_cache/
+.mypy_cache/
+
+# Environment / secrets
+.env
+.env.*
+secrets.yml
+
+# Recyclarr runtime artifacts
+recyclarr
+recyclarr-linux-*
+
+# OS
+Thumbs.db
