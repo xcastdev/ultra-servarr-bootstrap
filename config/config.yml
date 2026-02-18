@@ -23,25 +23,25 @@ instances:
   sonarr:
     app_path: /sonarr
     api_key_secret: SONARR_API_KEY
-    root_folder: media/tv
+    root_folder: media/all/tv
     category: tv-hd
     type: sonarr
   sonarr2:
     app_path: /sonarr2
     api_key_secret: SONARR2_API_KEY
-    root_folder: media/tv-uhd
+    root_folder: media/all/tv-uhd
     category: tv-uhd
     type: sonarr
   radarr:
     app_path: /radarr
     api_key_secret: RADARR_API_KEY
-    root_folder: media/movies
+    root_folder: media/all/movies
     category: movies-hd
     type: radarr
   radarr2:
     app_path: /radarr2
     api_key_secret: RADARR2_API_KEY
-    root_folder: media/movies-uhd
+    root_folder: media/all/movies-uhd
     category: movies-uhd
     type: radarr
   prowlarr:
