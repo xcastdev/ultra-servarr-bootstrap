@@ -92,7 +92,11 @@ Open `https://{username}.{servername}.usbx.me/jellyseerr` and walk through setup
 
 ### 5. Store Secrets in GitHub
 
-Go to your repository's **Settings > Secrets and variables > Actions** and add each secret:
+Secrets must be stored as **environment secrets** under an environment named **`ultra-prod`**. Repository-level secrets will not work because the workflows reference this specific environment.
+
+1. Go to **Settings > Environments** and click **New environment**
+2. Name it **`ultra-prod`** and click **Configure environment**
+3. Under **Environment secrets**, click **Add secret** and create each one:
 
 | Secret               | Value                                    |
 | -------------------- | ---------------------------------------- |
