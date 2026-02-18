@@ -81,8 +81,7 @@ def _configure_sonarr_servers(client: JellyseerrClient, config: dict) -> list[st
         }
 
         if found:
-            # Update existing
-            payload["id"] = found["id"]
+            # Update existing — id is read-only, passed via URL only
             client.put(f"api/v1/settings/sonarr/{found['id']}", json=payload)
             changes.append(f"Updated Jellyseerr Sonarr server: {name}")
         else:
@@ -132,7 +131,7 @@ def _configure_radarr_servers(client: JellyseerrClient, config: dict) -> list[st
         }
 
         if found:
-            payload["id"] = found["id"]
+            # Update existing — id is read-only, passed via URL only
             client.put(f"api/v1/settings/radarr/{found['id']}", json=payload)
             changes.append(f"Updated Jellyseerr Radarr server: {name}")
         else:
