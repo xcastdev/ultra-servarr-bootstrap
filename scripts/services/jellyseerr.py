@@ -126,6 +126,7 @@ def _configure_radarr_servers(client: JellyseerrClient, config: dict) -> list[st
             "activeProfileId": profile_id,
             "activeProfileName": resolved_profile_name,
             "activeDirectory": root_folder,
+            "minimumAvailability": "released",
             "isDefault": is_default,
             "is4k": is_4k,
         }

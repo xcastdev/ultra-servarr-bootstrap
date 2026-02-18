@@ -1,33 +1,32 @@
 """Jellyfin configuration — library creation."""
 
 import logging
-import urllib.parse
 
 from lib.api_client import JellyfinClient
 
 log = logging.getLogger(__name__)
 
-# Libraries to create, keyed by display name
-_LIBRARIES = [
+# Fallback library definitions if not specified in config
+_DEFAULT_LIBRARIES = [
     {
         "name": "TV Shows",
         "collectionType": "tvshows",
-        "path_key": "media/tv",
+        "path": "media/all/tv",
     },
     {
         "name": "TV Shows UHD",
         "collectionType": "tvshows",
-        "path_key": "media/tv-uhd",
+        "path": "media/all/tv-uhd",
     },
     {
         "name": "Movies",
         "collectionType": "movies",
-        "path_key": "media/movies",
+        "path": "media/all/movies",
     },
     {
         "name": "Movies UHD",
         "collectionType": "movies",
-        "path_key": "media/movies-uhd",
+        "path": "media/all/movies-uhd",
     },
 ]
 
@@ -45,33 +44,35 @@ def configure_jellyfin(
     changes = []
     home_dir = config["home_dir"]
 
+    # Read library definitions from config, fall back to defaults
+    libraries = inst.get("libraries", _DEFAULT_LIBRARIES)
+
     # Get existing virtual folders (libraries)
     existing = client.get("Library/VirtualFolders")
     existing_names = {lib["Name"] for lib in existing}
 
     created_any = False
-    for lib in _LIBRARIES:
+    for lib in libraries:
         lib_name = lib["name"]
-        lib_path = f"{home_dir}/{lib['path_key']}"
+        lib_path = f"{home_dir}/{lib['path']}"
 
         if lib_name in existing_names:
             log.info("Jellyfin library already exists: %s", lib_name)
             continue
 
-        # POST /Library/VirtualFolders?name=...&collectionType=...&paths=...&refreshLibrary=true
-        # Pass path via query param (most reliable across Jellyfin versions)
-        params = urllib.parse.urlencode(
-            [
-                ("name", lib_name),
-                ("collectionType", lib["collectionType"]),
-                ("paths", lib_path),
-                ("refreshLibrary", "true"),
-            ]
-        )
+        # POST /Library/VirtualFolders
+        # - name, collectionType, paths, refreshLibrary as query params
+        # - LibraryOptions as JSON body
+        # Defer refresh until all libraries are created.
         client.post(
-            f"Library/VirtualFolders?{params}",
+            "Library/VirtualFolders",
+            params={
+                "name": lib_name,
+                "collectionType": lib["collectionType"],
+                "paths": [lib_path],
+                "refreshLibrary": "false",
+            },
             json={"LibraryOptions": {}},
-            headers={"Content-Type": "application/json"},
         )
         changes.append(f"Created library: {lib_name} ({lib_path})")
         created_any = True

@@ -50,6 +50,19 @@ instances:
   jellyfin:
     app_path: /jellyfin
     api_key_secret: JELLYFIN_API_KEY
+    libraries:
+      - name: TV Shows
+        collectionType: tvshows
+        path: media/all/tv
+      - name: TV Shows UHD
+        collectionType: tvshows
+        path: media/all/tv-uhd
+      - name: Movies
+        collectionType: movies
+        path: media/all/movies
+      - name: Movies UHD
+        collectionType: movies
+        path: media/all/movies-uhd
   jellyseerr:
     app_path: /jellyseerr
     api_key_secret: JELLYSEERR_API_KEY
