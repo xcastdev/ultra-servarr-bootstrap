@@ -59,8 +59,8 @@ def _configure_sonarr_servers(client: JellyseerrClient, config: dict) -> list[st
         # Check if this instance already exists by matching baseUrl
         found = _find_existing_server(existing, base_url)
 
-        # Resolve quality profile ID, language profile ID, and root folder
-        profile_id = _resolve_profile_id(client, inst, profile_name)
+        # Resolve quality profile, language profile, and root folder
+        profile_id, resolved_profile_name = _resolve_profile(client, inst, profile_name)
         lang_profile_id = _resolve_language_profile_id(inst)
         root_folder = inst.get("root_folder", "")
 
@@ -72,6 +72,7 @@ def _configure_sonarr_servers(client: JellyseerrClient, config: dict) -> list[st
             "apiKey": inst["api_key"],
             "baseUrl": base_url,
             "activeProfileId": profile_id,
+            "activeProfileName": resolved_profile_name,
             "activeLanguageProfileId": lang_profile_id,
             "activeDirectory": root_folder,
             "isDefault": is_default,
@@ -112,7 +113,7 @@ def _configure_radarr_servers(client: JellyseerrClient, config: dict) -> list[st
 
         found = _find_existing_server(existing, base_url)
 
-        profile_id = _resolve_profile_id(client, inst, profile_name)
+        profile_id, resolved_profile_name = _resolve_profile(client, inst, profile_name)
         root_folder = inst.get("root_folder", "")
 
         payload = {
@@ -123,6 +124,7 @@ def _configure_radarr_servers(client: JellyseerrClient, config: dict) -> list[st
             "apiKey": inst["api_key"],
             "baseUrl": base_url,
             "activeProfileId": profile_id,
+            "activeProfileName": resolved_profile_name,
             "activeDirectory": root_folder,
             "isDefault": is_default,
             "is4k": is_4k,
@@ -172,18 +174,21 @@ def _resolve_language_profile_id(inst: dict) -> int:
     return 1
 
 
-def _resolve_profile_id(client: JellyseerrClient, inst: dict, profile_name: str) -> int:
-    """Resolve a quality profile name to its ID via the Arr API.
+def _resolve_profile(
+    client: JellyseerrClient, inst: dict, profile_name: str
+) -> tuple[int, str]:
+    """Resolve a quality profile name to its ID and name via the Arr API.
 
-    Jellyseerr proxies profile lookups. If the profile doesn't exist yet
-    (Recyclarr hasn't run), fall back to the first available profile.
+    Jellyseerr requires both activeProfileId and activeProfileName.
+    If the profile doesn't exist yet (Recyclarr hasn't run), fall back
+    to the first available profile.
+
+    Returns (profile_id, profile_name).
     """
     if not profile_name:
-        return 0
+        return 0, ""
 
     try:
-        # Jellyseerr exposes Arr profiles through its own API
-        # But we query the Arr instance directly for reliability
         from lib.api_client import ArrClient
 
         arr_client = ArrClient(inst["url"], inst["api_key"])
@@ -191,7 +196,7 @@ def _resolve_profile_id(client: JellyseerrClient, inst: dict, profile_name: str)
 
         for profile in profiles:
             if profile["name"] == profile_name:
-                return profile["id"]
+                return profile["id"], profile["name"]
 
         # Profile not found — Recyclarr may not have run yet
         log.warning(
@@ -200,8 +205,8 @@ def _resolve_profile_id(client: JellyseerrClient, inst: dict, profile_name: str)
             inst["name"],
         )
         if profiles:
-            return profiles[0]["id"]
+            return profiles[0]["id"], profiles[0]["name"]
     except Exception as exc:
         log.warning("Could not resolve profile %r: %s", profile_name, exc)
 
-    return 0
+    return 0, ""

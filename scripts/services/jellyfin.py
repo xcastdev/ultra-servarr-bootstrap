@@ -58,22 +58,19 @@ def configure_jellyfin(
             log.info("Jellyfin library already exists: %s", lib_name)
             continue
 
-        # POST /Library/VirtualFolders?name={name}&collectionType={type}&refreshLibrary=true
-        # Include the path via PathInfos in the body (single call)
+        # POST /Library/VirtualFolders?name=...&collectionType=...&paths=...&refreshLibrary=true
+        # Pass path via query param (most reliable across Jellyfin versions)
         params = urllib.parse.urlencode(
-            {
-                "name": lib_name,
-                "collectionType": lib["collectionType"],
-                "refreshLibrary": "true",
-            }
+            [
+                ("name", lib_name),
+                ("collectionType", lib["collectionType"]),
+                ("paths", lib_path),
+                ("refreshLibrary", "true"),
+            ]
         )
         client.post(
             f"Library/VirtualFolders?{params}",
-            json={
-                "LibraryOptions": {
-                    "PathInfos": [{"Path": lib_path}],
-                },
-            },
+            json={"LibraryOptions": {}},
             headers={"Content-Type": "application/json"},
         )
         changes.append(f"Created library: {lib_name} ({lib_path})")
