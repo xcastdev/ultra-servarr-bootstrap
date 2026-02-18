@@ -39,16 +39,35 @@ class _BaseClient:
                 resp = self.session.request(
                     method, url, headers=headers, timeout=30, **kwargs
                 )
+                # 4xx: client error — log the response body and fail immediately
+                if 400 <= resp.status_code < 500:
+                    body = resp.text[:1000]
+                    log.error(
+                        "HTTP %d from %s %s — body: %s",
+                        resp.status_code,
+                        method.upper(),
+                        url,
+                        body,
+                    )
+                    resp.raise_for_status()
+
+                # 5xx: server error — retryable
                 if resp.status_code >= 500:
                     raise requests.exceptions.HTTPError(
                         f"{resp.status_code} Server Error", response=resp
                     )
-                resp.raise_for_status()
                 return resp
             except (
                 requests.exceptions.ConnectionError,
                 requests.exceptions.HTTPError,
             ) as exc:
+                # Never retry client errors (4xx)
+                if (
+                    isinstance(exc, requests.exceptions.HTTPError)
+                    and exc.response is not None
+                    and exc.response.status_code < 500
+                ):
+                    raise
                 if attempt == MAX_RETRIES:
                     raise
                 wait = BACKOFF_BASE**attempt

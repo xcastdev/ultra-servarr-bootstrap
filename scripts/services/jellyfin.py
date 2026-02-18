@@ -59,6 +59,7 @@ def configure_jellyfin(
             continue
 
         # POST /Library/VirtualFolders?name={name}&collectionType={type}&refreshLibrary=true
+        # Include the path via PathInfos in the body (single call)
         params = urllib.parse.urlencode(
             {
                 "name": lib_name,
@@ -66,26 +67,14 @@ def configure_jellyfin(
                 "refreshLibrary": "true",
             }
         )
-        # Jellyfin expects paths in the request body
         client.post(
             f"Library/VirtualFolders?{params}",
             json={
-                "LibraryOptions": {},
+                "LibraryOptions": {
+                    "PathInfos": [{"Path": lib_path}],
+                },
             },
             headers={"Content-Type": "application/json"},
-        )
-        # Add the path to the library
-        add_params = urllib.parse.urlencode(
-            {
-                "refreshLibrary": "true",
-            }
-        )
-        client.post(
-            f"Library/VirtualFolders/Paths?{add_params}",
-            json={
-                "Name": lib_name,
-                "Path": lib_path,
-            },
         )
         changes.append(f"Created library: {lib_name} ({lib_path})")
         created_any = True

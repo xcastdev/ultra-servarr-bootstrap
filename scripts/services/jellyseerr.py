@@ -59,8 +59,9 @@ def _configure_sonarr_servers(client: JellyseerrClient, config: dict) -> list[st
         # Check if this instance already exists by matching baseUrl
         found = _find_existing_server(existing, base_url)
 
-        # Resolve quality profile ID and root folder path
+        # Resolve quality profile ID, language profile ID, and root folder
         profile_id = _resolve_profile_id(client, inst, profile_name)
+        lang_profile_id = _resolve_language_profile_id(inst)
         root_folder = inst.get("root_folder", "")
 
         payload = {
@@ -71,6 +72,7 @@ def _configure_sonarr_servers(client: JellyseerrClient, config: dict) -> list[st
             "apiKey": inst["api_key"],
             "baseUrl": base_url,
             "activeProfileId": profile_id,
+            "activeLanguageProfileId": lang_profile_id,
             "activeDirectory": root_folder,
             "isDefault": is_default,
             "is4k": is_4k,
@@ -143,6 +145,31 @@ def _find_existing_server(existing: list, base_url: str) -> dict | None:
         if server.get("baseUrl") == base_url:
             return server
     return None
+
+
+def _resolve_language_profile_id(inst: dict) -> int:
+    """Resolve a language profile ID from a Sonarr instance.
+
+    Sonarr v3 has a separate languageprofile endpoint.
+    Sonarr v4 merged language into quality profiles — the endpoint returns
+    empty or 404, so we fall back to ID 1 (usually 'English' or 'Any').
+    """
+    try:
+        from lib.api_client import ArrClient
+
+        arr_client = ArrClient(inst["url"], inst["api_key"])
+        profiles = arr_client.get("api/v3/languageprofile")
+        if profiles:
+            # Prefer 'English', fall back to first available
+            for p in profiles:
+                if p.get("name", "").lower() == "english":
+                    return p["id"]
+            return profiles[0]["id"]
+    except Exception as exc:
+        log.warning("Could not fetch language profiles from %s: %s", inst["name"], exc)
+
+    # Sonarr v4 or error — use default ID 1
+    return 1
 
 
 def _resolve_profile_id(client: JellyseerrClient, inst: dict, profile_name: str) -> int:

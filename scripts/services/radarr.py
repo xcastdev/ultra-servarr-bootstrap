@@ -3,6 +3,7 @@
 Shares the same logic as Sonarr but uses movieCategory instead of tvCategory.
 """
 
+import copy
 import logging
 
 from lib.api_client import ArrClient
@@ -71,7 +72,19 @@ def _ensure_download_client(client: ArrClient, config: dict, inst: dict) -> list
             break
 
     if existing is None:
-        payload = _build_download_client_payload(expected_fields, inst)
+        # Fetch the full schema so all required fields are present
+        schemas = client.get("api/v3/downloadclient/schema")
+        qbit_schema = next(
+            (s for s in schemas if s.get("implementation") == "QBittorrent"), None
+        )
+        if qbit_schema is None:
+            raise RuntimeError(
+                "QBittorrent schema not found in Radarr download client schemas"
+            )
+        payload = copy.deepcopy(qbit_schema)
+        payload["name"] = "qBittorrent"
+        payload["enable"] = True
+        _set_fields(payload, expected_fields)
         client.post("api/v3/downloadclient", json=payload)
         changes.append("Added qBittorrent download client")
     else:
@@ -85,8 +98,8 @@ def _ensure_download_client(client: ArrClient, config: dict, inst: dict) -> list
                 break
 
         if needs_update:
-            payload = _build_download_client_payload(expected_fields, inst)
-            payload["id"] = existing["id"]
+            payload = copy.deepcopy(existing)
+            _set_fields(payload, expected_fields)
             client.put(f"api/v3/downloadclient/{existing['id']}", json=payload)
             changes.append("Updated qBittorrent download client settings")
         else:
@@ -95,24 +108,11 @@ def _ensure_download_client(client: ArrClient, config: dict, inst: dict) -> list
     return changes
 
 
-def _build_download_client_payload(fields: dict, inst: dict) -> dict:
-    """Build the download client JSON payload for Radarr (uses movieCategory)."""
-    return {
-        "name": "qBittorrent",
-        "implementation": "QBittorrent",
-        "configContract": "QBittorrentSettings",
-        "enable": True,
-        "protocol": "torrent",
-        "fields": [
-            {"name": "host", "value": fields["host"]},
-            {"name": "port", "value": fields["port"]},
-            {"name": "urlBase", "value": fields["urlBase"]},
-            {"name": "username", "value": fields["username"]},
-            {"name": "password", "value": fields["password"]},
-            {"name": "movieCategory", "value": fields["movieCategory"]},
-            {"name": "useSsl", "value": fields["useSsl"]},
-        ],
-    }
+def _set_fields(payload: dict, values: dict) -> None:
+    """Override field values in an Arr download client payload."""
+    for field in payload.get("fields", []):
+        if field["name"] in values:
+            field["value"] = values[field["name"]]
 
 
 def _set_media_management(client: ArrClient, config: dict) -> list[str]:
